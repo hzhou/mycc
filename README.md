@@ -18,7 +18,8 @@ Sorry for lack of configurations, but hopefully you'd enjoy the simplicity.
 
 ## Usage
 
-Set `CC=mycc` and most build system will pick it up.
+Set `CC=mycc` and most build system will pick it up. For example, with Makefile,
+try `make CC=mycc`.
 
 ## Example
 ```
