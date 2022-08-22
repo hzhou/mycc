@@ -21,6 +21,17 @@ Sorry for lack of configurations, but hopefully you'd enjoy the simplicity.
 Set `CC=mycc` and most build system will pick it up.
 
 ## Example
+```
+$ cat foo/foo.c
+#include <stdio.h>
+#include <unistd.h>
+int r=0;
+void delay(int iters){for(int i=0;i<iters;i++);}
+void baz() { delay(5000000); r++; }
+void bar() { delay(1000000); printf("hello world!\n"); r++; baz(); }
+int main(int argc,char **argv) { bar(); return r; }
+
+```
 ### build
 ```
 $ mycc -o foo/foo foo/foo.c
