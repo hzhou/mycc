@@ -1,6 +1,7 @@
 page: mycc_translate
     module: perl
 
+    $^I = ".raw"
     $global %syms
     my @call_stack
     $while <>

@@ -80,5 +80,14 @@ $ cat foo_clean.log
   0.032    }
 ```
 
+`mycc_translate` can also be used "in-line":
+```
+$ mycc_translate foo.log
+
+$ ls foo.log*
+foo.log  foo.log.raw
+```
+`foo.log.raw` is the original raw log file, and `foo.log` has been overwritten with translated lines.
+
 ## Note
 In case it is not clear, this is for debugging and code study. Do not use it to build production.
