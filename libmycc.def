@@ -1,0 +1,131 @@
+page: libmycc, -
+    module: c
+    has_bool: 1
+
+    $include stdio, stdbool, stdint, stdlib, string, unistd
+
+    $struct(map_entry) p_start, p_end, n_offset, s_file[128]
+
+    $global struct map_entry maps[1024]
+    $global int num_map_entries = 0
+
+    $list init, __cyg_profile_func_enter, __cyg_profile_func_exit
+
+#---------------------------------------- 
+macros:
+    constructor: __attribute__((constructor))
+    destructor: __attrilbute__((destructor))
+    print_to: log_file
+
+subcode: _autoload
+    $global FILE *log_file
+
+fncode: init: $(constructor) void
+    check_env()
+    load_maps()
+    start_time()
+
+fncode: my_exit: $(destructor) void
+    unload_maps()
+
+fncode: __cyg_profile_func_enter(void *fn, void *callsite): void
+    $if log_file
+        print_timestamp()
+        $print Enter $fn from $callsite
+
+fncode: __cyg_profile_func_exit(void *fn, void *callsite): void
+    $if log_file
+        print_timestamp()
+        $print Exit $fn from $callsite
+
+#---------------------------------------- 
+fncode: check_env
+    s = getenv("MYCC_LOG")
+    $if s
+        $if s $eq "on" || s $eq "stdout"
+            log_file = stdout
+        $elif s $eq "stderr"
+            log_file = stderr
+        $else
+            log_file = fopen(s, "w")
+
+#---------------------------------------- 
+fncode: start_time
+    # $include define _POSIX_C_SOURCE 200101L
+    $include time.h
+    $global struct timespec time_start
+    clock_gettime(CLOCK_MONOTONIC, &time_start)
+
+fncode: print_timestamp
+    $global struct timespec time_cur
+    clock_gettime(CLOCK_MONOTONIC, &time_cur)
+    n_sec = time_cur.tv_sec - time_start.tv_sec
+    n_msec = (time_cur.tv_nsec - time_start.tv_nsec) / 1000000
+    $if n_msec < 0
+        n_sec--
+        n_msec+=1000
+    $print "%3d.%03d -", n_sec, n_msec
+
+#---------------------------------------- 
+fncode: load_maps: void    
+    pid_t pid = getpid();
+
+    char path[1024];
+    sprintf(path, "/proc/%d/maps", (int) pid);
+    &call open_rs, path
+        $if parse_maps_line(num_map_entries, s)
+            num_map_entries++
+            $if num_map_entries >= 1024
+                break
+    $for i=0:num_map_entries
+        $my struct map_entry *p = &maps[i]
+        $if log_file
+            $print "%p - %p @ 0x%x -- %s\n", p->p_start, p->p_end, p->n_offset, p->s_file
+
+fncode: unload_maps: void
+
+fncode: parse_maps_line(i, s_line): bool
+    # $print [$s_line]
+    s = s_line
+
+    $local s1, s2 = NULL, s_off = NULL, s_path: const char *
+    s1 = s
+
+    $call skip_to, '-'
+    *s = '\0'; s++;
+    s2 = s
+
+    $call skip_to, ' '
+    *s = '\0'; s++;
+    $if s $eq "r-xp"
+        s+=6
+        s_off = s
+    $else
+        return false
+
+    $call skip_to, ' '
+    *s = '\0'; s++;
+
+    $call skip_to, '/'
+    $if *s == '/'
+        s_path = s
+        $call skip_to, '\n'
+        *s = '\0'
+    $else
+        return false
+
+    $call add_entry
+    return true;
+
+    # --------------------------------------------
+    subcode: skip_to(c)
+        $while *s && *s != $(c)
+            s++
+
+    subcode: add_entry
+        struct map_entry *p = &(maps[i]);
+        p->p_start = (void *) (uintptr_t) strtol(s1, NULL, 16);
+        p->p_end = (void *) (uintptr_t) strtol(s2, NULL, 16);
+        p->n_offset = (int) strtol(s_off, NULL, 16);
+        strncpy(p->s_file, s_path, 128);
+

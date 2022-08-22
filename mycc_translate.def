@@ -1,0 +1,27 @@
+page: mycc_translate
+    module: perl
+
+    $global %syms
+    my @call_stack
+    $while <>
+        $if /^(0x\S+) - (0x\S+) \@\s+(0x\S+)\s*--\s*(\S+)/ -> $a, $b, $off, $fname
+            load_map($a, $b, $off, $fname)
+        $elif /^(.*) Enter\s+0x(\S+)/ -> $time, $addr
+            push @call_stack, $addr
+            $if $syms{$addr}
+                print $time, '    ' x scalar(@call_stack)
+                $print "$syms{$addr} {\n"
+        $elif /^(.*) Exit\s+0x(\S+)/ -> $time, $addr
+            $if $addr eq $call_stack[-1]
+                print $time, '    ' x scalar(@call_stack)
+                $print "}\n"
+                pop @call_stack
+        $else
+            $print $_-
+
+fncode: load_map($a, $b, $off, $fname)
+    my $offset = hex($a) - hex($off)
+    &call open_r, nm $fname 2>&1 |
+        $if /^(0\S+) T (\w+)/ -> $p, $name
+            my $addr = sprintf("%x", hex($p) + $offset)
+            $syms{$addr} = $name

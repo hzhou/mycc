@@ -1,0 +1,37 @@
+page: mycc
+    module: sh
+    prefix: $HOME/bin
+
+    CC=gcc
+    my_cflags="-g -finstrument-functions"
+
+    $call load_args
+    $call run_cc
+
+subcode: load_args
+    allargs=("$@")
+    linking=yes
+    argno=0
+    Show=
+    $foreach arg in "$@"
+        addarg=yes
+        $switch "$arg"
+            $of -c|-S|-E|-M|-MM
+                # The compiler links by default
+                linking=no
+            $of -show
+                Show=echo
+                addarg=no
+            $of -v
+                echo "mycc - wrapper cc for gcc to add -finstrument-functions"
+                $if "$#" -eq "1"
+                    linking=no
+        $if $addarg = no
+            unset allargs[$argno]
+        ((argno++))
+
+subcode: run_cc
+    $if "$linking" = "yes"
+        $Show $CC $my_cflags "${allargs[@]}" -L$(prefix) -lmycc
+    $else
+        $Show $CC $my_cflags "${allargs[@]}"
