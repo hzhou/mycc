@@ -9,18 +9,18 @@ page: libmycc, -
     $global struct map_entry maps[1024]
     $global int num_map_entries = 0
 
-    $list init, __cyg_profile_func_enter, __cyg_profile_func_exit
+    $list my_init, my_exit, __cyg_profile_func_enter, __cyg_profile_func_exit
 
 #---------------------------------------- 
 macros:
     constructor: __attribute__((constructor))
-    destructor: __attrilbute__((destructor))
+    destructor: __attribute__((destructor))
     print_to: log_file
 
 subcode: _autoload
     $global FILE *log_file
 
-fncode: init: $(constructor) void
+fncode: my_init: $(constructor) void
     check_env()
     load_maps()
     start_time()
