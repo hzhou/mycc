@@ -2,9 +2,11 @@
 
 ## Prerequisite
 * gcc or C compiler that supports -finstrument-functions
+* make - for build and install
+* /proc/[pid]/maps - I don't know how otherwise to translate address
 * shell - for mycc wrapper script
 * Perl - for mycc_translate script
-* Make
+* binutils - just `nm` for mycc_translate
 * (Optional) [MyDef](https://github.com/hzhou/MyDef) + [output_c](https://github.com/hzhou/output_c)
 
 ## Install
@@ -24,7 +26,7 @@ Sorry for lack of configurations, but hopefully you'd enjoy the simplicity.
 ## Usage
 
 Set `CC=mycc` and most build system will pick it up. For example, with Makefile,
-try `make CC=mycc`.
+try `make CC=mycc`. With autoconf, try `./configure CC=mycc`.
 
 ## Example
 ```
