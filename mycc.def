@@ -32,6 +32,6 @@ subcode: load_args
 
 subcode: run_cc
     $if "$linking" = "yes"
-        $Show $CC $my_cflags "${allargs[@]}" -L$(prefix) -lmycc
+        $Show $CC $my_cflags "${allargs[@]}" -Wl,--whole-archive -L$(prefix) -lmycc -Wl,--no-whole-archive
     $else
         $Show $CC $my_cflags "${allargs[@]}"
