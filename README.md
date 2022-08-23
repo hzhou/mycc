@@ -5,11 +5,16 @@
 * shell - for mycc wrapper script
 * Perl - for mycc_translate script
 * Make
-* [MyDef](https://github.com/hzhou/MyDef) + [output_c](https://github.com/hzhou/output_c)
+* (Optional) [MyDef](https://github.com/hzhou/MyDef) + [output_c](https://github.com/hzhou/output_c)
 
 ## Install
 ```
 make install
+```
+
+Or (without installing MyDef, may be out-of-date) -
+```
+make boot=boot install
 ```
 
 It installs to $HOME/bin. Add $HOME/bin to your PATH.

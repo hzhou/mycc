@@ -1,4 +1,5 @@
 MakePage=mydef_page
+boot=out
 
 TOPROOT=out/libmycc.a out/mycc.sh 
 
@@ -23,10 +24,10 @@ out/mycc.sh: mycc.def
 out/mycc_translate.pl: mycc_translate.def   
 	${MakePage} -mperl mycc_translate.def out/mycc_translate.pl
 
-install: out/libmycc.a out/mycc.sh out/mycc_translate.pl
-	install -m744 out/mycc.sh ${HOME}/bin/mycc
-	install -m744 out/mycc_translate.pl ${HOME}/bin/mycc_translate
-	install -m644 out/libmycc.a ${HOME}/bin
+install: ${boot}/libmycc.a ${boot}/mycc.sh ${boot}/mycc_translate.pl
+	install -m744 ${boot}/mycc.sh ${HOME}/bin/mycc
+	install -m744 ${boot}/mycc_translate.pl ${HOME}/bin/mycc_translate
+	install -m644 ${boot}/libmycc.a ${HOME}/bin
 
 out: force_look
 	make -C out
