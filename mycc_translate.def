@@ -2,16 +2,20 @@ page: mycc_translate
     module: perl
 
     $^I = ".raw"
-    $global %syms
+    $global %syms, @maps
     my @call_stack
     $while <>
-        $if /^(0x\S+) - (0x\S+) \@\s+(0x\S+)\s*--\s*(\S+)/ -> $a, $b, $off, $fname
-            load_map($a, $b, $off, $fname)
+        $if /^(0x\S+) - (0x\S+) \@\s+(0x\S+)\s*--\s*(\S+)/ -> $a, $b, $off, $filename
+            push @maps, [hex($a), hex($b), hex($off), $filename]
+            load_map($a, $b, $off, $filename)
         $elif /^(.*) Enter\s+0x(\S+)/ -> $time, $addr
             push @call_stack, $addr
+            print $time, '    ' x scalar(@call_stack)
             $if $syms{$addr}
-                print $time, '    ' x scalar(@call_stack)
                 $print "$syms{$addr} {\n"
+            $else
+                my $str = find_symbol(hex($addr))
+                $print "$str {\n"
         $elif /^(.*) Exit\s+0x(\S+)/ -> $time, $addr
             $if $addr eq $call_stack[-1]
                 print $time, '    ' x scalar(@call_stack)
@@ -20,9 +24,16 @@ page: mycc_translate
         $else
             $print $_-
 
-fncode: load_map($a, $b, $off, $fname)
+fncode: load_map($a, $b, $off, $filename)
     my $offset = hex($a) - hex($off)
-    &call open_r, nm $fname 2>&1 |
-        $if /^(0\S+) T (\w+)/ -> $p, $name
+    &call open_r, nm $filename 2>&1 |
+        $if /^(0\S+) [Tt] (\w+)/ -> $p, $name
             my $addr = sprintf("%x", hex($p) + $offset)
             $syms{$addr} = $name
+
+fncode: find_symbol($addr)
+    $foreach $m in @maps
+        $if $addr >= $m->[0] && $addr <= $m->[1]
+            my $a = $addr - ($m->[0] - $m->[2])
+            return sprintf("%x @ $m->[3]", $a)
+    return sprintf("0x%x", $addr)
