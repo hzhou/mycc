@@ -1,28 +1,71 @@
 page: mycc_translate
     module: perl
 
-    $^I = ".raw"
+    $my $in_file
+    $foreach $a in @ARGV
+        $if -f $a
+            $in_file = $a
+
+    my $in
+    $if $in_file
+        open $in, $in_file or die "Can't read $in_file\n"
+    $else
+        $in = \*STDIN
+        
+    $call process_log, $in
+
+    my $out
+    $if $in_file
+        close $in
+        rename $in_file, "$in_file.raw"
+        open $out, "> $in_file" or die "Can't write to $in_file\n"
+    $else
+        $out = \*STDOUT
+
+    $foreach $a in @out
+        print $out $a->[3], ' '
+        print $out '    ' x $a->[0]
+        print $out "$a->[2]$a->[4]\n" 
+
+    $if $in_file
+        close $out
+
+subcode: process_log(In)
     $global %syms, @maps
     my @call_stack
-    $while <>
+    my @out
+    my $last_time
+    $while <$(In)>
         $if /^(0x\S+) - (0x\S+) \@\s+(0x\S+)\s*--\s*(\S+)/ -> $a, $b, $off, $filename
             push @maps, [hex($a), hex($b), hex($off), $filename]
             load_map($a, $b, $off, $filename)
-        $elif /^(.*) Enter\s+0x(\S+)/ -> $time, $addr
-            push @call_stack, $addr
-            print $time, '    ' x scalar(@call_stack)
+        $elif /^(.*)Enter\s+0x(\S+)/ -> $time, $addr
+            $call check_time
+            my $name
             $if $syms{$addr}
-                $print "$syms{$addr} {\n"
+                $name = $syms{$addr}
             $else
-                my $str = find_symbol(hex($addr))
-                $print "$str {\n"
-        $elif /^(.*) Exit\s+0x(\S+)/ -> $time, $addr
-            $if $addr eq $call_stack[-1]
-                print $time, '    ' x scalar(@call_stack)
-                $print "}\n"
+                $name = find_symbol(hex($addr))
+            push @out, [$#call_stack+1, $addr, $name, $time]
+            push @call_stack, $#out
+        $elif /^(.*)Exit\s+0x(\S+)/ -> $time, $addr
+            $call check_time
+            my $a = $out[$call_stack[-1]]
+            $if $addr eq $a->[1]
+                my $dur = $time - $a->[3]
+                $if $dur > 0.001
+                    push @{$a}, sprintf(" [%.3f]", $dur)
                 pop @call_stack
         $else
-            $print $_-
+            # $print $_-
+
+    /* sometime the time from two threads may tangle together */
+    subcode: check_time
+        $if $time =~ /([0-9\.]+)/
+            $time = $1
+            $last_time = $time
+        $else
+            $time = $last_time
 
 fncode: load_map($a, $b, $off, $filename)
     my $offset = hex($a) - hex($off)
